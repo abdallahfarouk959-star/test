@@ -1,63 +1,392 @@
 <!DOCTYPE html>
-<html>
-<head>
-    <title>Thomas J. Watson Sr -  Fan Page</title>
-</head>
-<body>
-    <h1>Thomas J. Watson </h1>
-    <img src="https://upload.wikimedia.org/wikipedia/commons/7/7e/Thomas_J_Watson_Sr.jpg" width="300" height="300">
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>أسئلة Business Communication - Practice</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
 
-    <p>Thomas J. Watson, Sr. is the American industrialist, who built the International Business Machines Corporation (<a href="https://www.ibm.com">IBM</a>)  into the largest manufacturer of electric typewriters and data-processing equipment in the world.
-    </p>
-    <ul>
-        <li>In 1939, he received an honorary degree in Doctor of Commercial Science from Oglethorpe University. </li>
-        <li>In 1940s, Watson was on the national executive board of the Boy Scouts of America. </li>
-        <li>Watson served as a trustee of Columbia University from June 6, 1933, until his death. </li>
-        <li>He was posthumously inducted into the Junior Achievement U.S. Business Hall of Fame in 1990.</li>
-    </ul>
-    
-    <h1>IBM Growth Over Years: </h1>
-    <table>
-        <tr>
-            <th>Year </th>
-            <th>Employees </th>
-            <th>Gross Income (In m$) </th>
-        </tr>
-        <tr>
-            <td>1925</td>
-            <td>3698</td>
-            <td>13</td>
-        </tr>
-        <tr>
-            <td>1930</td>
-            <td>6346</td>
-            <td>19 </td>
-        </tr>
-        <tr>
-            <td>1935</td>
-            <td>8651</td>
-            <td>21</td>
-        </tr>
+  <body class="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4 sm:p-6" dir="ltr">
+    <div class="max-w-6xl mx-auto" id="app-root">
+      <header class="bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-6 rounded-lg shadow-lg mb-6 flex items-center justify-between">
+        <div>
+          <h1 class="text-2xl font-bold">Business Communication & Writing — Practice</h1>
+          <p class="text-blue-100 text-sm">All questions — randomized order with Reset button</p>
+        </div>
         
-    </table>
+      </header>
 
-    <h2>Insights Submission Form</h2>
-    <form action="/submit-feedback" method="POST">
-        <fieldset>
-            <legend>Your Insights About Thomas J. Watson Are Valued</legend>
-    
-            <label for="name">Name:</label><br>
-            <input type="text" id="name" name="name" placeholder="Enter your name" required><br><br>
-    
-            <label for="email">Email:</label><br>
-            <input type="email" id="email" name="email" placeholder="Enter your email" required><br><br>
-    
-            <label for="comments">Comments:</label><br>
-            <textarea id="comments" name="comments" rows="4" cols="50" placeholder="Share your thoughts about Thomas J. Watson"></textarea><br><br>
-    
-            <button type="submit">Submit</button>
-        </fieldset>
-    </form>
-</body>
+      <nav class="flex flex-wrap gap-3 mb-6" id="tabs-nav"></nav>
 
+      <main id="tab-content" class="space-y-4"></main>
+
+      <footer class="mt-10 bg-indigo-50 p-4 rounded-lg text-center border-2 border-indigo-200">
+        <p class="text-indigo-900 font-semibold">Page generated based on the Intro template</p>
+      </footer>
+    </div>
+
+    <script>
+      // Minimal copy of the interactive MCQ engine from INTRO but simplified
+      const state = { activeTab: 'questions' };
+
+      const labelsConst = { explain: 'Explanation', questions: 'Questions' };
+
+      // Questions provided by the user (Arabic/English presented as English text to keep logic simple)
+      const questionsByUnit = {
+        'unit1': [
+          { id: 'u1-q1', type: 'mcq', q: 'The first step in the communication process is:', opts: ['Defining the situation','Sensing a need','Composing the message','Selecting a course of action'], a: 1 },
+          { id: 'u1-q2', type: 'mcq', q: '"Be courteous in your writing" means:', opts: ['Showing consideration','Using polite phrases','Adopting the right tone','All of the above'], a: 3 },
+          { id: 'u1-q3', type: 'mcq', q: 'Communication work done with people and groups outside the business is:', opts: ['Internal operational communication','Personal communication','Routine operational communication','External operational communication'], a: 3 }
+        ],
+        'unit2': [],
+        'unit3': [],
+        'unit4': [],
+      };
+
+      // Simple state persistence for answers
+      const STORAGE_KEY = 'technical_mcq_answers_v1';
+      const ORDER_KEY = 'technical_mcq_order_v1';
+      let saved = {};
+      try { saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); } catch(e) { saved = {}; }
+
+      function save() { localStorage.setItem(STORAGE_KEY, JSON.stringify(saved)); }
+
+      function shuffle(array) {
+        for (let i = array.length - 1; i > 0; i -= 1) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [array[i], array[j]] = [array[j], array[i]];
+        }
+      }
+
+      function ensureOrder() {
+        const all = flattenAllQuestions();
+        let order = [];
+        try {
+          const raw = localStorage.getItem(ORDER_KEY);
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed) && parsed.length === all.length) {
+              order = parsed.slice();
+            }
+          }
+        } catch (e) {
+          order = [];
+        }
+        if (!order || order.length !== all.length) {
+          order = all.map((_, i) => i);
+          shuffle(order);
+          try { localStorage.setItem(ORDER_KEY, JSON.stringify(order)); } catch (e) {}
+        }
+        return order;
+      }
+
+      function resetAll() {
+        // clear saved answers and regenerate order
+        saved = {};
+        try { localStorage.removeItem(STORAGE_KEY); localStorage.removeItem(ORDER_KEY); } catch (e) {}
+        save();
+        ensureOrder();
+        renderContent();
+      }
+
+      function renderTabs() {
+        const nav = document.getElementById('tabs-nav'); nav.innerHTML = '';
+        const labels = labelsConst;
+        const tabs = [ {id:'questions', label: labels.questions} ];
+
+        tabs.forEach(t => {
+          const btn = document.createElement('button');
+          btn.textContent = t.label;
+          btn.className = 'px-4 py-2 rounded-lg font-semibold text-sm bg-white text-blue-600 border border-blue-600';
+          btn.addEventListener('click', () => { state.activeTab = t.id; renderContent(); });
+          nav.appendChild(btn);
+        });
+
+        // Add a Reset button (clears answers + reshuffles)
+        const resetBtn = document.createElement('button');
+        resetBtn.textContent = '⟳ Reset';
+        resetBtn.className = 'ml-2 px-3 py-1 rounded-md text-sm bg-red-50 text-red-700 border border-red-200 hover:bg-red-100';
+        resetBtn.addEventListener('click', () => {
+          if (confirm('This will reset answers and reshuffle questions. Continue?')) resetAll();
+        });
+        nav.appendChild(resetBtn);
+      }
+
+      function flattenAllQuestions() {
+        const all = [];
+        Object.keys(questionsByUnit).forEach(unit => {
+          questionsByUnit[unit].forEach(q => { all.push(Object.assign({unit}, q)); });
+        });
+        return all;
+      }
+
+      function renderContent() {
+        const c = document.getElementById('tab-content'); c.innerHTML = '';
+        if (state.activeTab === 'questions') {
+          const all = flattenAllQuestions();
+          const order = ensureOrder();
+          const list = order.map((idx) => all[idx]);
+          if (list.length === 0) {
+            const m = document.createElement('div'); m.className='p-4 bg-white rounded shadow'; m.textContent='No questions available.'; c.appendChild(m); return;
+          }
+
+          list.forEach((q, i) => {
+            const card = document.createElement('div'); card.className='bg-white rounded-lg shadow-md overflow-hidden mb-3';
+            const hdr = document.createElement('div'); hdr.className='p-3 bg-blue-50 border-l-4 border-blue-500 flex justify-between items-center';
+            hdr.innerHTML = `<div class="font-semibold">${i+1}. ${q.q}</div><div class="text-xs text-blue-700">${q.type.toUpperCase()}</div>`;
+            const body = document.createElement('div'); body.className='p-3';
+
+            const ol = document.createElement('ul'); ol.className='space-y-2';
+            q.opts.forEach((opt, idx) => {
+              const li = document.createElement('li'); li.className='cursor-pointer bg-white rounded px-3 py-2 border border-blue-100 hover:bg-blue-50 flex items-start gap-3';
+              li.innerHTML = `<span class="font-semibold text-blue-700">${String.fromCharCode(65+idx)})</span><span>${opt}</span>`;
+              li.addEventListener('click', () => {
+                if (saved[q.id] !== undefined) return; // lock after answer
+                saved[q.id] = idx; save(); renderContent();
+              });
+              // show marks: only mark the correct option and the chosen wrong option
+              if (saved[q.id] !== undefined) {
+                const chosen = saved[q.id];
+                const mark = document.createElement('span');
+                mark.className = 'mr-auto text-sm';
+                if (idx === q.a) {
+                  // always show check on the correct answer
+                  mark.innerHTML = '<span class="text-green-700 font-semibold">✓</span>';
+                  li.appendChild(mark);
+                } else if (idx === chosen && chosen !== q.a) {
+                  // if this option is the one the user chose and it's wrong, show X
+                  mark.innerHTML = '<span class="text-red-700 font-semibold">✗</span>';
+                  li.appendChild(mark);
+                }
+              }
+              ol.appendChild(li);
+            });
+
+            body.appendChild(ol);
+
+            // feedback
+            if (saved[q.id] !== undefined) {
+              const fb = document.createElement('div'); fb.className='mt-3 p-2 rounded text-sm';
+              if (saved[q.id] === q.a) { fb.className += ' text-green-700 bg-green-50 border border-green-100'; fb.textContent = 'Correct answer — well done.'; }
+              else { fb.className += ' text-red-700 bg-red-50 border border-red-100'; fb.textContent = `Incorrect. Correct answer: ${q.opts[q.a]}`; }
+              body.appendChild(fb);
+            }
+
+            card.appendChild(hdr); card.appendChild(body); c.appendChild(card);
+          });
+        }
+      }
+
+      // Populate questionsByUnit fully from the user's provided content for Units 1-4
+      (function seedFromUserContent(){
+        const unit1 = [];
+
+        // Unit 1 - MCQ (Q1..Q13)
+        const u1mcq = [
+          ['The first step in the communication process is:', ['Defining the situation','Sensing a need','Composing the message','Selecting a course of action'], 1],
+          ['"Be courteous in your writing" means:', ['Showing consideration','Using polite phrases','Adopting the right tone','All of the above'], 3],
+          ['Communication work done with people and groups outside the business is:', ['Internal operational communication','Personal communication','Routine operational communication','External operational communication'], 3],
+          ['All the communication that happens in conducting work within the business:', ['External operational communication','Personal communication','Internal operational communication','Persuasive business message'], 2],
+          ['Organizational communication activities fall into three broad categories:', ['Electronic, face-to-face, internal','External, external, personal','Internal, external, personal','Operational, face-to-face, personal'], 2],
+          ['External communication involves all EXCEPT:', ['Suppliers','Service companies','Customers','Colleagues'], 3],
+          ['Which of the following is an Intellectual reason for writing?', ['Applying for a job','Writing helps you think','Business communication','Education and scientific papers'], 1],
+          ['Which of the following is a Practical reason for writing?', ['Writing helps you think','Applying for a job (CV)','Organizing ideas','Analyzing complex data'], 1],
+          ['The message used to convey details about an upcoming event is:', ['Routine Business Message','Positive Business Message','Negative Business Message','Persuasive Business Message'], 0],
+          ['A message intended to influence the recipient to take action is called:', ['Negative Business Message','Written Business Message','Routine Business Message','Persuasive Business Message'], 3],
+          ['Types of business messages include:', ['Verbal','Written','Persuasive','All of the above'], 3],
+          ['A business message could NOT be:', ['Verbal','Conceptual','Positive','Persuasive'], 1],
+          ['When is a message ready to be delivered to the intended recipients?', ['When recipient decides response','When the message is interpreted','When prepared and planned','When a need is sensed'], 2]
+        ];
+        u1mcq.forEach((it, i) => unit1.push({ id: `u1-mcq-${i+1}`, type: 'mcq', q: it[0], opts: it[1], a: it[2] }));
+
+        // Unit 1 - True/False (Q14..Q55)
+        const u1tf = [
+          ['Communication plays a very important role in daily affairs.', 'True'],
+          ['As soon as you move one step from the bottom, effectiveness depends on reaching others.', 'True'],
+          ['Selecting a course of action is the first step in the communication process.', 'False'],
+          ['Internal operational communication includes communication with customers.', 'False'],
+          ['Personal communication is essential to sustain business relationships.', 'True'],
+          ['Because of technology, the importance of writing is decreasing nowadays.', 'False'],
+          ['Writing your CV to reflect your qualification is a practical reason for writing.', 'True'],
+          ['Different situations may require different communication strategies.', 'True'],
+          ['Effective communication is about transmitting your message clearly.', 'True'],
+          ['All external messages convey the organization\'s image.', 'True'],
+          ['The three stages of the writing process are completely independent.', 'False'],
+          ['Revising means challenging what you have written and looking for alternatives.', 'True'],
+          ['When drafting, you should stop to fix minor problems like grammar immediately.', 'False'],
+          ['"Be Clear" means the message should not be vague or confusing.', 'True'],
+          ['"Be Complete" means giving the reader all information they need.', 'True'],
+          ['Writing in the Active Voice makes writing less wordy.', 'True'],
+          ['Planning requires an informed sense about your readers.', 'True'],
+          ['Using long and complex words is always better than simple words.', 'False'],
+          ['A common mistake is spending too much time on drafting and too little on planning.', 'True'],
+          ['Visual aids (charts/tables) help reduce text volume and clarify data.', 'True'],
+          ['The recipients will know about others receiving the message through BCC.', 'False'],
+          ['Formal emails should avoid using personal references and abbreviations.', 'True'],
+          ['It is not important to include your company and position in B2B emails.', 'False'],
+          ['In Block Style letters, paragraphs are indented.', 'False'],
+          ['Memos typically use a Salutation like "Dear..." at the beginning.', 'False'],
+          ['Persuasion Memos often end with a call to action.', 'True'],
+          ['Email is a high-cost method of communication.', 'False'],
+          ['The "Inside Address" is the address of the person sending the letter.', 'False'],
+          ['An Information Memo outlines the action required.', 'True'],
+          ['"Dear Mr. Ali" is an example of a Complimentary Close.', 'False'],
+          ['Slang and abbreviations should be avoided in technical reports.', 'True'],
+          ['The "Appendix" contains supplementary material like detailed tables.', 'True'],
+          ['Long reports do not need a Title Page.', 'False'],
+          ['Letters are used mainly for corresponding with people inside your organization.', 'False'],
+          ['Memos are used for internal communication within a business.', 'True'],
+          ['A Problem-solving Memo should only mention positive details.', 'False'],
+          ['You should leave the Subject Line blank in professional emails.', 'False'],
+          ['Text messages are appropriate for delivering bad news like firing someone.', 'False'],
+          ['Internal company messages tend to be less formal than business letters.', 'True'],
+          ['The "Return Address" refers to the recipient\'s address.', 'False'],
+          ['A buffer in a bad news message helps prepare the reader for negative information.', 'True'],
+          ['The direct approach is the best choice when delivering bad news.', 'False']
+        ];
+        u1tf.forEach((t, i) => unit1.push({ id: `u1-tf-${i+1}`, type: 'tf', q: t[0], opts: ['True','False'], a: t[1] === 'True' ? 0 : 1 }));
+
+        questionsByUnit['unit1'] = unit1;
+
+        // Unit 2
+        const unit2 = [];
+        const u2mcq = [
+          ['The three stages of the writing process are:', ['Planning, Editing, Proofreading','Planning, Drafting, Revising','Drafting, Correcting, Formatting','Planning, Gathering, Analyzing'], 1],
+          ['The primary purpose of the Revising stage is to:', ['Generate the first draft quickly','Fix mechanical errors only','Improve content, structure, tone','Gather facts'], 2],
+          ['The best advice for the Drafting stage is:', ['Stop to fix every error','Focus on flexibility and keep moving','Write the final version directly','Focus only on grammar'], 1],
+          ['To visualize the readers and keep their interests in mind is a technique used in:', ['Drafting','Revising','Planning','Proofreading'], 2],
+          ['Which principle of effective writing requires you to eliminate wordy expressions?', ['Be correct','Be concise','Be clear','Be complete'], 1],
+          ['The basic principle that focuses on your attitude and sympathy towards human feelings is:', ['Be complete','Be courteous','Be considerate','Be correct'], 2],
+          ['Writing in the Active Voice means constructing sentences where the subject:', ['Is unknown','Performs the action','Is acted upon','Is hidden'], 1],
+          ['The passive voice is a good choice when:', ['You want to be very direct','The actor is important','You want to de-emphasize subject','You are writing a sales message'], 2],
+          ['When choosing words for multiple readers, select words that:', ['Impress the reader','Everyone understands','Are high-level','Are technical'], 1],
+          ['Technical words should be used:', ['If readers understand them','To impress readers','Rarely (spell check issues)','Never (legal issues)'], 0],
+          ['Concrete words are words which refer to:', ['Abstract concepts','Vague ideas','Things reader can feel/see','Emotional states only'], 2],
+          ['Which statement is accurate regarding sentence length?', ['Short are more effective','Long are more impressive','Long emphasize better','Long are forbidden'], 0],
+          ['Going back over your message carefully to check for misunderstandings is:', ['Drafting','Editing','Revising','Proofreading'], 2],
+          ['When delivering a bad news message, the refusal should be:', ['Stated directly in the opening','Highlighted in a separate paragraph','Embedded with the reasons','Omitted entirely'], 2],
+          ['In a bad news message, a Buffer is used to:', ['Deliver bad news immediately','Put reader in accepting frame of mind','Blame the reader','End the message'], 1]
+        ];
+        u2mcq.forEach((it,i)=> unit2.push({ id: `u2-mcq-${i+1}`, type:'mcq', q: it[0], opts: it[1], a: it[2] }));
+
+        const u2tf = [
+          ['The three stages of the writing process are completely independent of each other.', 'False'],
+          ['A common mistake is spending too much time on drafting and too little on planning.', 'True'],
+          ['Planning requires an informed sense about your readers and their individual context.', 'True'],
+          ['"Be Complete" means giving the reader all the information they need.', 'True'],
+          ['"Be Clear" means the message should not be vague or confusing.', 'True'],
+          ['Writing in the Active Voice makes writing less wordy by cutting unnecessary words.', 'True'],
+          ['The Passive Voice should be used when you want to de-emphasize an unfamiliar subject.', 'True'],
+          ['Using more words in a sentence leads to the risk of misunderstanding.', 'True'],
+          ['Short and simple sentences have stronger emphasis than long ones.', 'True'],
+          ['Using long and complex words is always better than using simple words.', 'False'],
+          ['The phrase "Along the lines of" is an example of a Cluttering phrase.', 'True'],
+          ['Adapting to your reader sometimes means writing on a simpler level than normal.', 'True'],
+          ['To reduce using discriminatory words, you can place yourself in the shoes of the readers.', 'True'],
+          ['Revising means challenging what you have written and looking for better alternatives.', 'True'],
+          ['When drafting, you should stop to fix minor problems like grammar immediately.', 'False'],
+          ['In a bad news message, the refusal should be highlighted in a separate paragraph.', 'False'],
+          ['The final paragraph of a bad news message should close on an optimistic note.', 'True'],
+          ['A buffer in a bad news message helps prepare the reader for negative information.', 'True'],
+          ['The direct approach is the best choice when delivering bad news.', 'False'],
+          ['Administrative writing aims to use easy language and accurate phrases.', 'True'],
+          ['The Semicolon (;) is placed between long sentences, especially if one causes the other.', 'True']
+        ];
+        u2tf.forEach((t,i)=> unit2.push({ id:`u2-tf-${i+1}`, type:'tf', q:t[0], opts:['True','False'], a: t[1]==='True'?0:1 }));
+
+        questionsByUnit['unit2'] = unit2;
+
+        // Unit 3
+        const unit3 = [];
+        const u3mcq = [
+          ['The first step in planning a report is to:', ['Write the final conclusion','Design the cover page','Conduct a preliminary investigation','Print the report'], 2],
+          ['Business reports are defined as a systematic and objective communication of:', ['Personal opinions','Factual information','Rumors and gossip','Emotional appeals'], 1],
+          ['Data collected from books, articles, and online sources is called:', ['Primary data','Secondary data','Personal data','Raw data'], 1],
+          ['A report suggesting the most feasible course of action is a:', ['Routine report','Problem-solving report','Feasibility study','Progress report'], 2],
+          ['The section of a long report that summarizes the entire report for busy managers is called:', ['Table of Contents','Introduction','Executive Summary','Appendix'], 2],
+          ['Which type of heading identifies the subject without summarizing the text (e.g., "Cost Analysis")?', ['Talking heading','Topic heading','Long heading','Active heading'], 1],
+          ['To avoid human error, the writer should:', ['Use secondary sources','Use reliable data','Draw definite conclusions','All of the above'], 1],
+          ['Which of the following is NOT a part of the "Front Matter" (Prefatory Parts) of a long report?', ['Title Page','Letter of Transmittal','Conclusions','Table of Contents'], 2]
+        ];
+        u3mcq.forEach((it,i)=> unit3.push({ id:`u3-mcq-${i+1}`, type:'mcq', q:it[0], opts:it[1], a:it[2] }));
+
+        const u3tf = [
+          ['The report is the presentation of information that serves a business purpose.', 'True'],
+          ['"Problem-Solving Reports" are used to suggest a solution to a specific issue.', 'True'],
+          ['Secondary data is information that someone else has already collected.', 'True'],
+          ['Visual aids (like charts and tables) help reduce the volume of text and make data easier to understand.', 'True'],
+          ['The headings for the table of contents should match exactly the heading of the report section.', 'True'],
+          ['In long reports, the outline will shape the basis of the table of contents.', 'True'],
+          ['The conventional system of outline is using Arabic numbers in presenting the major headings of the report.', 'False'],
+          ['You should use the "Active Voice" in writing reports to make them interesting and direct.', 'True'],
+          ['Formatting (like bolding and bullet points) is not important in technical reports.', 'False'],
+          ['In formal long reports, you should use a personal tone (using "I" and "We").', 'False'],
+          ['Long reports do not need a Title Page.', 'False'],
+          ['The "Appendix" contains supplementary material like detailed tables or code.', 'True'],
+          ['You should write the "Executive Summary" before writing the rest of the report.', 'False'],
+          ['The "Indirect Order" is best used when the reader might resist or disagree with the findings.', 'True'],
+          ['Short reports typically require a full "Table of Contents".', 'False']
+        ];
+        u3tf.forEach((t,i)=> unit3.push({ id:`u3-tf-${i+1}`, type:'tf', q:t[0], opts:['True','False'], a: t[1]==='True'?0:1 }));
+
+        questionsByUnit['unit3'] = unit3;
+
+        // Unit 4
+        const unit4 = [];
+        const u4mcq = [
+          ['Business letters are primarily used for corresponding with:', ['Friends and family only','People outside the organization','Internal employees only','Yourself'], 1],
+          ['Which of the following is considered the oldest form of written business communication?', ['Emails','Memorandums','Business Letters','Text Messages'], 2],
+          ['The block style of business letters is characterized by:', ['Indenting the first line of every paragraph','Centering all text','Aligning all parts to the left margin','Placing the date on the right side'], 2],
+          ['In a modified block style letter, the date and complimentary close are:', ['Aligned to the left','Centered','Aligned to the right (or started at center)','Hidden'], 2],
+          ['The "Inside Address" in a business letter is:', ['The writer\'s own address','The recipient\'s address','The subject line','The date'], 1],
+          ['Which part of the letter comes immediately after the body?', ['The Salutation','The Date','The Complimentary Close','The Inside Address'], 2],
+          ['Memos are primarily used for:', ['External communication','Internal communication within organization','Personal diaries','Legal contracts only'], 1],
+          ['The standard heading of a Memo includes:', ['To, From, Date, Subject','Dear, Sincerely, Date','Address, Phone, Fax','Name, Age, Gender'], 0],
+          ['Which memo type is used to convey suggestions to senior management?', ['Information Memo','Problem-solving Memo','Persuasion Memo','Internal Memo Proposal'], 3],
+          ['A Problem-solving Memo typically:', ['States the problem and analyzes it','Just says hello','Asks for a vacation','Advertises a product'], 0],
+          ['Which of the following is a disadvantage of using email?', ['It is a convenient communication channel','It is confidential','It might be ignored due to volume of inbox','It is a cheap communication channel'], 2],
+          ['Emails are not advised to be used when:', ['Writing people of higher position','Reporting routine task progress','The message is complicated / requires negotiation','You are messaging a friend'], 2],
+          ['Which of the following is considered the oldest form of written business communication?', ['Emails','Memorandums','Business Letters','Text Messages'], 2],
+          ['In a modified block style letter, the date and complimentary close are:', ['Aligned to the left','Centered','Aligned to the right (or started at center)','Hidden'], 2],
+          ['The "Inside Address" in a business letter is:', ['The writer\'s own address','The recipient\'s address','The subject line','The date'], 1],
+          ['Which part of the letter comes immediately after the body?', ['The Salutation','The Date','The Complimentary Close','The Inside Address'], 2],
+          ['"Sincerely" and "Cordially" are examples of:', ['Salutations','Subject lines','Headers','Complimentary closes'], 3],
+          ['In Block Style letters, the standard practice is for paragraphs to be:', ['Indented','Flushed to the left margin','Centered','Right-justified'], 1],
+          ['A memo\'s primary audience is usually:', ['Internal colleagues or departments','External clients','Government agencies','The general public'], 0],
+          ['Which memo type is used to convey suggestions to senior management?', ['Information Memo','Problem-solving Memo','Persuasion Memo','Internal Memo Proposal'], 3],
+          ['A Problem-solving Memo typically:', ['States the problem and analyzes it','Just says hello','Asks for a vacation','Advertises a product'], 0],
+          ['The "Subject Line" in an email is critical because:', ['It is required by law','It helps reader decide to open email','It makes the email look pretty','It hides the content'], 1],
+          ['One major advantage of Email is:', ['It is very expensive','It is slow','It facilitates mass communication / low cost','It requires paper'], 2],
+          ['Writing in all capital letters (ALL CAPS) in an email is considered:', ['Professional','Good for emphasis','Necessary','Rude (Shouting)'], 3]
+        ];
+        u4mcq.forEach((it,i)=> unit4.push({ id:`u4-mcq-${i+1}`, type:'mcq', q:it[0], opts:it[1], a:it[2] }));
+
+        const u4tf = [
+          ['Business letters are the oldest form of written communication.', 'True'],
+          ['Internal company messages tend to be less formal than business letters.', 'True'],
+          ['In Block Style letters, paragraphs are indented.', 'False'],
+          ['Letters are used mainly for corresponding with people inside your organization.', 'False'],
+          ['Memos are used for internal communication within a business.', 'True'],
+          ['Memos typically use a Salutation like "Dear..." at the beginning.', 'False'],
+          ['An Information Memo outlines the action required.', 'True'],
+          ['A Problem-solving Memo should only mention positive details and ignore disadvantages.', 'False'],
+          ['Persuasion Memos often end with a call to action.', 'True'],
+          ['Email is a high-cost method of communication.', 'False'],
+          ['Formal emails should avoid using personal references and abbreviations.', 'True'],
+          ['It is not important to include your company and position in email messages to other businesses.', 'False'],
+          ['The recipients will know about the others receiving the message through the BCC field.', 'False'],
+          ['You should leave the Subject Line blank in professional emails.', 'False'],
+          ['Text messages are appropriate for delivering bad news like firing someone.', 'False'],
+          ['The "Return Address" refers to the recipient\'s address inside the letter.', 'False']
+        ];
+        u4tf.forEach((t,i)=> unit4.push({ id:`u4-tf-${i+1}`, type:'tf', q:t[0], opts:['True','False'], a: t[1]==='True'?0:1 }));
+
+        questionsByUnit['unit4'] = unit4;
+      })();
+
+      // language selector removed; no-op
+      renderTabs(); renderContent();
+    </script>
+  </body>
 </html>
